@@ -1,0 +1,39 @@
+name: Swagger Validation for Multiple Files
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  swagger-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository code
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      # Step 2: Set up Node.js environment
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.20.3'
+
+      # Step 3: Install Swagger CLI
+      - name: Install Swagger CLI
+        run: npm install -g swagger-cli
+
+      # Step 4: Find and validate all Swagger/OpenAPI files
+      # This will find and validate all YAML and JSON files in the "api" directory
+      - name: Validate all Swagger/OpenAPI files
+        run: |
+          for file in api/*.yaml; do
+            swagger-cli validate "$file"
+          done
+          for file in api/*.json; do
+            swagger-cli validate "$file"
+          done
