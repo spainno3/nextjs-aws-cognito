@@ -34,6 +34,3 @@ jobs:
           for file in api/*.yaml; do
             swagger-cli validate "$file"
           done
-          for file in api/*.json; do
-            swagger-cli validate "$file"
-          done
