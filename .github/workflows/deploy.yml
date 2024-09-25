@@ -1,0 +1,52 @@
+name: Deploy Next.js to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.20.3'
+
+      - name: Install dependencies and build Next.js
+        run: |
+          npm install
+          npm run build
+
+            # Step 4: Add SSH key to SSH agent
+      - name: Setup SSH key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          echo "${SSH_PRIVATE_KEY}" | base64 -d > ~/.ssh/deploy-key
+          chmod 600 ~/.ssh/deploy-key
+
+      # Step 5: Copy built files to the EC2 server via SSH
+      - name: Copy built files to EC2
+        run: |
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/deploy-key -r .next public package.json node_modules ${{ secrets.USER_NAME }}@${{ secrets.HOST_NAME }}:/home/ubuntu/next-app/
+
+      # Step 6: SSH into EC2 and restart the Next.js app
+      - name: SSH and Restart the app
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/deploy-key ${{ secrets.USER_NAME }}@${{ secrets.HOST_NAME }} << 'EOF'
+          cd /home/ubuntu/next-app
+          npm install --production
+          pm2 restart next
+          exit
+          EOF
+
+      # Step 7: Clean up the SSH key
+      - name: Remove SSH key
+        run: |
+          rm -f ~/.ssh/deploy-key
